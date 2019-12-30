@@ -36,10 +36,11 @@ def build_LibriSpeech_dict(root_dir, sampling_rate=16000, with_data=False):
                 chapter = entry[0].split('-')[1]
                 sounds[speaker][chapter] = {}
 
+                entry.sort()
                 entry_paths = []
-                entry_root = root_dir + '\\' + speaker + '\\' + chapter
+                entry_root = root_dir + '/' + speaker + '/' + chapter
                 for i in range(0,len(entry)-1):
-                    entry_paths.append(entry_root + '\\' + entry[i])
+                    entry_paths.append(entry_root + '/' + entry[i])
 
                 if with_data:
                     entry_data = load_sound_files(entry_paths, sampling_rate)
