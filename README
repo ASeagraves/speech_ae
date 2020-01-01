@@ -8,7 +8,7 @@ This package implements autoencoders for processing speech data.
 Contents:
 
 build_speech_dict.py
--Driver to build a speech_dict ("speech dictionary") from a LibriSpeech corpus.  The speech_dict data structure forms the basis for the DataGenerator class implemented in gnenerator.py.
+-Driver to build a speech_dict ("speech dictionary") from a LibriSpeech corpus.  The speech_dict data structure forms the basis for the DataGenerator class implemented in generator.py.
 
 utilities.py
 -A set of utility functions for preprocessing a LibriSpeech corpus including speech_dict construction.
