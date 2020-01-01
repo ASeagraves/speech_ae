@@ -5,71 +5,47 @@ Created on Thu Dec 19 12:36:36 2019
 @author: Andrew
 """
 import tensorflow as tf
-from tensorflow import keras as keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.callbacks import ModelCheckpoint
+from generator import DataGenerator
+import utilities as utils
 
-import os
-import helper_classes
 import numpy as np
-import math
-from sklearn.model_selection import train_test_split
+import pickle
 
-# Concatenate the utterances
-utterances = ()
-for u in sound_segments:
-    utterances = utterances + (u,)
+# Speech dictionary
+root_dir = '../data/LibriSpeech/dev-clean'
+speech_dict_file = root_dir + '/dev-clean_dict.pkl'
+speech_dict = pickle.load(open(speech_dict_file, 'rb'))
 
-sounds = np.concatenate(utterances, axis=None)
-
-print(sounds.shape)
-
-import sys
-sys.exit()
-
-chunk_size = 5120
-
-
-if 0:
-    utterance = sounds[1]
-    utterance_size = sounds[1].shape[0]
-    N_chunks = math.floor(utterance_size/chunk_size)
-    X = np.zeros((N_chunks,chunk_size))
-
-    count = 0
-    for i in range(0,N_chunks):
-        for j in range(0,chunk_size):
-            X[i,j] = utterance[count]
-            count = count + 1
-        
-X_train, X_test, y_train, y_test = train_test_split(X, X, test_size=0.33, random_state=42)
-print(X_train)
+# Hyperparameters
+dt_chunk = .32 # sec
+sr = 16000 # Hz
+chunk_size = int(dt_chunk*sr)
+batch_size = 32
+epochs = 40
+min_val_frac = 0.2
+lr=1e-3
+enc_size1 = 1024
+dec_size1 = 1024
+latent_size = 512
 
 
+speech_dict_train, speech_dict_val, val_frac = utils.partition_speech_dict(speech_dict,
+                                                                                  chunk_size=chunk_size,
+                                                                                  batch_size=batch_size,
+                                                                                  min_val_frac=min_val_frac)
 
-if 0:
-    for i in range(0,len(sounds)):
-        N_chunks_utterance.append(math.floor(sounds[i].shape[0]/chunk_size))
-    
-    N_chunks = sum(N_chunks_utterance)
-    
-    X = np.zeros((N_chunks,chunk_size))
-    
-    chunk_count = 0
-    for i in range(0,len(sounds)):
-        utterance_i = sounds[i]
-        count = 0
-        for j in range(0, N_chunks_utterance[i]):
-            for k in range(0, chunk_size):
-                X[chunk_count,k] = utterance_i[count]
-                count = count + 1
-        chunk_count = chunk_count + 1
+# Data generators
+training_generator = DataGenerator(root_dir, speech_dict_train, 
+                                   chunk_size=chunk_size, batch_size=batch_size)
 
-enc_size1 = 500
-dec_size1 = 500
-latent_size = 10
+validation_generator = DataGenerator(root_dir, speech_dict_val, 
+                                     chunk_size=chunk_size, batch_size=batch_size)
 
-# CNN Architecture
+
+# Autoencoder
 model = Sequential()
 
 # Encoder
@@ -83,11 +59,26 @@ model.add(Dense(dec_size1, activation='relu'))
 model.add(Dense(chunk_size, activation='linear'))
 
 model.compile(loss='mean_squared_error',
-              optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+              optimizer=tf.keras.optimizers.Adam(lr=lr),
               metrics=['accuracy'])
 
-history = model.fit(x=X_train,y=X_train,batch_size=1)
+# checkpoint
+checkfile="simple1-{epoch:02d}-{val_loss:.3f}.hdf5"
+checkpoint = ModelCheckpoint(checkfile, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+callbacks_list = [checkpoint]
 
+history = model.fit_generator(generator=training_generator,
+                    validation_data=validation_generator, epochs=epochs,
+                    callbacks=callbacks_list)
+
+file = root_dir + '/84/data_84.npy'
+x = np.load(file)        
+n_chunks = len(x)//chunk_size
+size_to_keep = n_chunks*chunk_size
+X_test = x[:size_to_keep].reshape((n_chunks, chunk_size))
+                            
 X_pred = model.predict(x=X_test)
-for i in range(0,10):
-    print(str(X_test[5][i])+ ' ' + str(X_pred[5][i]))
+for i in range(40,80):
+    print(str(X_test[100][i])+ ' ' + str(X_pred[100][i]))
+
+pickle.dump(X_pred, open(root_dir + '/X_pred_84.pkl', 'wb'))
