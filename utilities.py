@@ -71,33 +71,6 @@ def build_LibriSpeech_dict(root_dir, with_utterances=False, sampling_rate=16000,
             np.save(outfile, speaker_data_all)    
 
     return speech_dict
-
-
-def chunk_speaker_data(speech_dict, sampling_rate=16000, dt_chunk=.40, with_data=False):
-    chunk_size = int(dt_chunk*sampling_rate)
-
-    speakers = [speaker for speaker in speech_dict]
-
-    speaker_data_chunks = {}
-
-    for speaker in tqdm(speakers):        
-        utterances = []
-        for chapter in speech_dict[speaker]:
-            if with_data:
-                utterances = utterances + speech_dict[speaker][chapter]['utterances']        
-            else:
-                utterances = utterances + load_sound_files(speech_dict[speaker][chapter]['flacs'], sampling_rate)
-                
-        sounds = ()
-        for u in utterances:
-            sounds = sounds + (u,)
-        
-        speaker_data_all = np.concatenate(sounds, axis=0)
-        n_chunks = math.floor(float(len(speaker_data_all))/float(chunk_size))
-        size_to_keep = n_chunks*chunk_size
-        speaker_data_chunks[speaker] = speaker_data_all[:size_to_keep].reshape((n_chunks, chunk_size))
-    
-    return speaker_data_chunks
     
 
 def batch_mapping(speech_dict, chunk_size=5120, batch_size=32):
@@ -218,3 +191,29 @@ def chunkify_speaker_data(speaker_datafile, chunk_size=5120):
     
     return X
     
+
+def bunchify_and_chunkify_speaker_data(speech_dict, sampling_rate=16000, dt_chunk=.40, with_data=False):
+    chunk_size = int(dt_chunk*sampling_rate)
+
+    speakers = [speaker for speaker in speech_dict]
+
+    speaker_data_chunks = {}
+
+    for speaker in tqdm(speakers):        
+        utterances = []
+        for chapter in speech_dict[speaker]:
+            if with_data:
+                utterances = utterances + speech_dict[speaker][chapter]['utterances']        
+            else:
+                utterances = utterances + load_sound_files(speech_dict[speaker][chapter]['flacs'], sampling_rate)
+                
+        sounds = ()
+        for u in utterances:
+            sounds = sounds + (u,)
+        
+        speaker_data_all = np.concatenate(sounds, axis=0)
+        n_chunks = math.floor(float(len(speaker_data_all))/float(chunk_size))
+        size_to_keep = n_chunks*chunk_size
+        speaker_data_chunks[speaker] = speaker_data_all[:size_to_keep].reshape((n_chunks, chunk_size))
+    
+    return speaker_data_chunks
