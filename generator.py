@@ -31,7 +31,7 @@ class DataGenerator(keras.utils.Sequence):
 
 
     def __data_generation(self, batch_i):
-        """Generates data containing batch_size samples"""
+        """Generate feature matrix containing a sequence of batch_size audio chunks"""
         
         # Unpack batch info
         speaker_i = batch_i[0]
@@ -40,13 +40,11 @@ class DataGenerator(keras.utils.Sequence):
         
         # Read speaker_i dataset
         file = self.root_dir + '/' + speaker_i + '/data_' + speaker_i + '.npy'
-        x = np.load(file)
-        
-        n_chunks = len(x)//self.chunk_size
-        size_to_keep = n_chunks*self.chunk_size
-        X_all = x[:size_to_keep].reshape((n_chunks, self.chunk_size))
-                
-        # Grab batch_i data
+
+        # Break the speaker audio signal into a chunked feature matrix        
+        X_all = utils.chunkify_speaker_data(file, chunks_size=self.chunk_size)
+
+        # Fetch batch_i data
         X = X_all[c0_i:c1_i]
         
         return  X

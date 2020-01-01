@@ -52,7 +52,6 @@ def build_LibriSpeech_dict(root_dir, with_utterances=False, sampling_rate=16000,
                 speech_dict[speaker][chapter]['flacs'] = entry_paths
                 speech_dict[speaker][chapter]['trans_file'] = entry[-1]
 
-    # Determine the size of each speaker's dataset
     for speaker in tqdm(speech_dict):        
         utterances = []
         for chapter in speech_dict[speaker]:
@@ -106,22 +105,24 @@ def chunk_speaker_data(speech_dict, sampling_rate=16000, dt_chunk=.40, with_data
 def batch_mapping(speech_dict, chunk_size=5120, batch_size=32):
     """
     This function constructs a one-to-one mapping:
-        
         batch_i --> {speaker_i, c0_i, c1_i}
 
     where:
-        batch_i = [0, ..., n_batch-1] where n_batch = number of batches per epoch       
+        batch_i = [0, ..., n_batch-1] is the batch index
+        n_batch = number of batches per epoch       
         speaker_i = speaker ID for batch_i
-        c0_i = starting column for batch_i in the chunked data matrix for speaker_i 
-        c1_i = terminating column+1 for batch_i in the chunked data matrix for speaker_i
+        c0_i = starting column for batch_i in the chunked feature matrix for speaker_i 
+        c1_i = terminating column+1 for batch_i in the chunked feature matrix for speaker_i
         
     Parameters
     ----------
     speech_dict : dict
         LibriSpeech dictionary
-    chunk_size : int
-        size of each audio sequence chunk
-        
+    chunk_size : int, optional
+        size of each audio sequence chunk. The default is 5120.
+    batch_size : int, optional
+        number of audio sequence chunks per training batch. The default is 32.
+    
     Returns
     -------
     batch_map : list
@@ -182,4 +183,40 @@ def partition_speech_dict(speech_dict, chunk_size=5120, batch_size=32, min_val_f
     val_frac = float(val_size)/float(n_batches)
     
     return speech_dict_train, speech_dict_val, val_frac
+
+
+def chunkify_speaker_data(speaker_datafile, chunk_size=5120):
+    """
+    Reshape speaker data array x into a feature matrix X where:
+        X.shape = (n_chunks, chunk_size) with n_chunks = floor(len(x)/chunk_size)
+    
+    Parameters
+    ----------
+    speaker_datafile : str
+        path to the speaker data array
+    chunk_size : int, optional
+        length of each feature vector. The default is 5120.
+
+    Returns
+    -------
+    X : numpy array, dim(X) = (n_chunks, chunk_size) 
+        Feature matrix in which the speaker data array is broken up into 
+        feature vectors of size chunk_size.  The column ordering preserves the
+        sequential structure of the original audio signal.  Only the first 
+        n_chunks*chunk_size entries from x are retained in X.
+    """
+    
+    # Read speaker_i data array
+    x = np.load(speaker_datafile)
+    
+    # Number of chunks
+    n_chunks = len(x)//chunk_size
+    
+    # Size of data to be retained in feature matrix
+    size_to_keep = n_chunks*chunk_size
+    
+    # Construct feature matrix
+    X = x[:size_to_keep].reshape((n_chunks, chunk_size))
+    
+    return X
     
