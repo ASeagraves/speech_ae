@@ -1,7 +1,5 @@
 import numpy as np
 import os
-import matplotlib.pyplot as plt
-import pandas as pd
 from tqdm import tqdm
 import librosa
 import math

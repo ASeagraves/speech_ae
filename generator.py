@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 from tensorflow import keras as keras
 import utilities as utils
 
@@ -38,7 +36,7 @@ class DataGenerator(keras.utils.Sequence):
         c0_i = batch_i[1]
         c1_i = batch_i[2]
         
-        # Read speaker_i dataset
+        # Filepath to speaker_i data array
         file = self.root_dir + '/' + speaker_i + '/data_' + speaker_i + '.npy'
 
         # Break the speaker audio signal into a chunked feature matrix        
@@ -47,4 +45,4 @@ class DataGenerator(keras.utils.Sequence):
         # Fetch batch_i data
         X = X_all[c0_i:c1_i]
         
-        return  X
+        return X
