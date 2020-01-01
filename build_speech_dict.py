@@ -9,8 +9,12 @@ import pickle
 root_dir = "../data/LibriSpeech/dev-clean"
 
 params = {'sr': 16000,
-          'with_data': True}
+          'with_utts': False,
+          'with_bunch':True}
 
-sounds = utils.build_LibriSpeech_dict(root_dir, sampling_rate=params['sr'], with_data=params['with_data'])
+speech_dict = utils.build_LibriSpeech_dict(root_dir,  
+                                           with_utterances = params['with_utts'],
+                                           sampling_rate = params['sr'],
+                                           bunch_speaker_data = params['with_bunch'])
 
-pickle.dump(sounds, open(root_dir + '/dev-clean_data_dict.pkl', 'wb'))
+pickle.dump(speech_dict, open(root_dir + '/dev-clean_dict.pkl', 'wb'))
