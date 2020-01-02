@@ -70,19 +70,21 @@ def train(root_dir, out_dir, hyperparams, layer_params):
                         callbacks=callbacks_list)
 
     # Plot training curves
-    train_line = plt.plot(history.history['acc'], label='train', linestyle='--')
-    val_line = plt.plot(history.history['val_acc'], label='val', linestyle='-')
+    ax = plt.subplot(111)
+    ax.plot(history.history['acc'], label='train', linestyle='--')
+    ax.plot(history.history['val_acc'], label='val', linestyle='-')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
-    plt.legend(handles=[train_line, val_line])
+    ax.legend()
     plt.savefig(out_dir + '/accuracy.png')
 
     plt.clf()
-    train_line = plt.plot(history.history['loss'], label='train', linestyle='--')
-    val_line = plt.plot(history.history['val_loss'], label='val', linestyle='-')
+    ax2 = plt.subplot(111)
+    ax2.plot(history.history['loss'], label='train', linestyle='--')
+    ax2.plot(history.history['val_loss'], label='val', linestyle='-')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
-    plt.legend(handles=[train_line, val_line])
+    ax2.legend()
     plt.savefig(out_dir + '/loss.png')
 
     # Save training history
