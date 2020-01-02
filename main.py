@@ -13,6 +13,7 @@ import utilities as utils
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+import autoencoder
 
 # Speech dictionary
 root_dir = '../data/LibriSpeech/dev-clean'
@@ -30,6 +31,7 @@ lr=1e-4
 enc_size1 = chunk_size//2
 dec_size1 = chunk_size//2
 latent_size = chunk_size//4
+layers = [chunk_size, enc_size1, latent_size, latent_size, dec_size1, chunk_size]
 
 params = {'chunk_size': chunk_size,
           'batch_size': batch_size}
@@ -43,16 +45,7 @@ validation_generator = DataGenerator(root_dir, speech_dict_val, **params)
 
 # Autoencoder
 model = Sequential()
-
-# Encoder
-model.add(Dense(chunk_size, activation='relu'))
-model.add(Dense(enc_size1, activation='relu'))
-model.add(Dense(latent_size, activation='relu'))
-
-# Decoder
-model.add(Dense(latent_size, activation='relu'))
-model.add(Dense(dec_size1, activation='relu'))
-model.add(Dense(chunk_size, activation='linear'))
+autoencoder.build_model(model, layers)
 
 model.compile(loss='mean_squared_error',
               optimizer=tf.keras.optimizers.Adam(lr=lr),
