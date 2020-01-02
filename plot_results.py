@@ -1,29 +1,38 @@
 # -*- coding: utf-8 -*-
 """
- Build a dictionary for a LibriSpeech dataset
+ Plot reconstructed audio signals against the ground truth
 """
-
+from tensorflow.keras.models import load_model
+from tensorflow.keras.models import Sequential
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+import utilities as utils
 
 root_dir = "../data/LibriSpeech/dev-clean"
 
-batch_size = 32
-chunk_size = 5120
+# Trained model repository
+simple1 = '../results/simple1/simple1-100_batch-128_lr-0.0001_chunk-800/simple1-82-3.349e-04-1.440e-01.hdf5'
+model_file = simple1
 
-x = np.load(root_dir + '/84/data_84.npy')
-n_chunks = len(x)//chunk_size
-size_to_keep = n_chunks*chunk_size
-X_test = x[:size_to_keep].reshape((n_chunks, chunk_size))
+# Hyperparameters
+batch_size = 128
+sr = 16000
+dt = 0.05
+chunk_size = int(sr*dt)
 
-X_pred = pickle.load(open(root_dir + '/X_pred_84.pkl', 'rb'))
+speaker = '2803'
 
-case = 805
+file = root_dir + '/' + speaker + '/data_' + speaker + '.npy'
+X_test = utils.chunkify_speaker_data(file, chunk_size=chunk_size)
 
-plt.plot(x)
-#plt.plot(X_test[case])
-#plt.plot(X_pred[case])
-plt.plot(X_pred.flatten())
+# Load model from the disk
+model = load_model(model_file)
+
+# Prediction
+X_pred = model.predict(x=X_test)
+
+plt.plot(X_test[505:510].flatten())
+plt.plot(X_pred[505:510].flatten())
 
 plt.show()
