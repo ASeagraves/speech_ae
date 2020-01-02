@@ -10,7 +10,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.callbacks import ModelCheckpoint
 from generator import DataGenerator
 import utilities as utils
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
@@ -20,30 +20,26 @@ speech_dict_file = root_dir + '/dev-clean_dict.pkl'
 speech_dict = pickle.load(open(speech_dict_file, 'rb'))
 
 # Hyperparameters
-dt_chunk = .32 # sec
+dt_chunk = .05 # sec
 sr = 16000 # Hz
 chunk_size = int(dt_chunk*sr)
-batch_size = 32
-epochs = 40
+batch_size = 128
+epochs = 100
 min_val_frac = 0.2
-lr=1e-3
-enc_size1 = 1024
-dec_size1 = 1024
-latent_size = 512
+lr=1e-4
+enc_size1 = chunk_size//2
+dec_size1 = chunk_size//2
+latent_size = chunk_size//4
 
+params = {'chunk_size': chunk_size,
+          'batch_size': batch_size}
 
-speech_dict_train, speech_dict_val, val_frac = utils.partition_speech_dict(speech_dict,
-                                                                                  chunk_size=chunk_size,
-                                                                                  batch_size=batch_size,
-                                                                                  min_val_frac=min_val_frac)
+# Training/validation split
+speech_dict_train, speech_dict_val, val_frac = utils.partition_speech_dict(speech_dict, min_val_frac=min_val_frac, **params)
 
 # Data generators
-training_generator = DataGenerator(root_dir, speech_dict_train, 
-                                   chunk_size=chunk_size, batch_size=batch_size)
-
-validation_generator = DataGenerator(root_dir, speech_dict_val, 
-                                     chunk_size=chunk_size, batch_size=batch_size)
-
+training_generator = DataGenerator(root_dir, speech_dict_train, **params)
+validation_generator = DataGenerator(root_dir, speech_dict_val, **params)
 
 # Autoencoder
 model = Sequential()
@@ -63,7 +59,7 @@ model.compile(loss='mean_squared_error',
               metrics=['accuracy'])
 
 # checkpoint
-checkfile="simple1-{epoch:02d}-{val_loss:.3f}.hdf5"
+checkfile="simple1-{epoch:02d}-{val_loss:.3e}-{val_acc:.3e}.hdf5"
 checkpoint = ModelCheckpoint(checkfile, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 callbacks_list = [checkpoint]
 
@@ -71,14 +67,17 @@ history = model.fit_generator(generator=training_generator,
                     validation_data=validation_generator, epochs=epochs,
                     callbacks=callbacks_list)
 
-file = root_dir + '/84/data_84.npy'
-x = np.load(file)        
-n_chunks = len(x)//chunk_size
-size_to_keep = n_chunks*chunk_size
-X_test = x[:size_to_keep].reshape((n_chunks, chunk_size))
-                            
-X_pred = model.predict(x=X_test)
-for i in range(40,80):
-    print(str(X_test[100][i])+ ' ' + str(X_pred[100][i]))
+# plot learning curves
+plt.subplot(2,1,1)
+plt.plot(history.history['acc'], label='train')
+plt.plot(history.history['val_acc'], label='val')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.subplot(2,1,2)
+plt.plot(history.history['loss'], label='train')
+plt.plot(history.history['val_loss'], label='val')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
 
-pickle.dump(X_pred, open(root_dir + '/X_pred_84.pkl', 'wb'))
+plt.savefig('simple1-'+str(epochs)+'_batch-'+str(batch_size)+'_lr-'+str(lr)+'_chunk-'+str(chunk_size)+'.png')
+plt.show()

@@ -40,7 +40,7 @@ class DataGenerator(keras.utils.Sequence):
         file = self.root_dir + '/' + speaker_i + '/data_' + speaker_i + '.npy'
 
         # Break the speaker audio signal into a chunked feature matrix        
-        X_all = utils.chunkify_speaker_data(file, chunks_size=self.chunk_size)
+        X_all = utils.chunkify_speaker_data(file, chunk_size=self.chunk_size)
 
         # Fetch batch_i data
         X = X_all[c0_i:c1_i]
