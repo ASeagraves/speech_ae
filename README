@@ -17,7 +17,7 @@ generator.py
 -DataGenerator class for generating batches of speech audio sequences from a preprocessed LibriSpeech corpus.
 
 train.py
--Keras/TensorFlow implementation of a simple autoencoder using fully-connected layers built using Sequential().  The hyperparmaeters and network layer structure (number of layers and layer sizes) are passed as inputs enabling automated parameter studies.
+-Keras/TensorFlow implementation of a simple autoencoder using fully-connected layers built using Sequential().  The hyperparameters and network structure (number of layers and layer sizes) are passed as inputs enabling automated parameter studies.  The model is constructed in autoencoder.py.
 
 driver.py
 -Driver for conducting automated parameter studies via sequential calls to train.py.
