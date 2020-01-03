@@ -75,22 +75,23 @@ def train(root_dir, out_dir, speech_dict_file, hyperparams, layer_params):
                         callbacks=callbacks_list)
 
     # Plot training curves
-    ax = plt.subplot(111)
+    fig1, ax = plt.subplots()
     ax.plot(history.history['acc'], label='train', linestyle='--')
     ax.plot(history.history['val_acc'], label='val', linestyle='-')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     ax.legend()
-    plt.savefig(out_dir + '/accuracy.png')
+    fig1.savefig(out_dir + '/accuracy.png')
 
-    plt.clf()
-    ax2 = plt.subplot(111)
+    plt.close(fig1)
+
+    fig2, ax2 = plt.subplots()
     ax2.plot(history.history['loss'], label='train', linestyle='--')
     ax2.plot(history.history['val_loss'], label='val', linestyle='-')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     ax2.legend()
-    plt.savefig(out_dir + '/loss.png')
+    fig2.savefig(out_dir + '/loss.png')
 
     # Save training history
     history_out = [history.history['acc'], history.history['val_acc'], history.history['loss'], history.history['val_loss']]
