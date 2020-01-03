@@ -15,7 +15,28 @@ def load_sound_files(file_paths, sr):
 
 
 def build_LibriSpeech_dict(root_dir, with_utterances=False, sampling_rate=16000, bunch_speaker_data=False):
-
+    """
+    Build a speech_dict data structure for the LibriSpeech corpus in root_dir.
+    
+    A speech_dict has the following structure:
+    
+    for speaker='<speaker_ID>', chapter='<chapter_ID>'
+    
+        speech_dict[speaker]['n_samples'] = <total number of audio samples for speaker_ID>
+        speech_dict[speaker][chapter]['flacs'] = <list of paths to flac files for speaker, chapter>
+        speech_dict[speaker][chapter]['trans'] = <path to the transcription file for speaker, chapter>
+    
+    Utterances can be optionally stored via:
+        speech_dict[speaker][chapter]['utterances'] = <list of numpy arrays for each utterance, sampled at sampling_rate>
+    
+    For large corpuses, it becomes impossible to store the utterances in memory
+    and so the DataGenerator class is used to load batches of audio sequence
+    chunks from the disk on-the-fly.  This is facilitated by (optionally) 
+    concatenating all speaker utterances into a single numpy array and saving 
+    it to the disk.
+    
+    """
+    
     # Extract list of speakers
     speakers = [x[1] for x in os.walk(root_dir)][0]
 
@@ -73,9 +94,9 @@ def build_LibriSpeech_dict(root_dir, with_utterances=False, sampling_rate=16000,
     return speech_dict
     
 
-def batch_mapping(speech_dict, chunk_size=5120, batch_size=32):
+def batch_mapping(speech_dict, chunk_size=5120, lwin_size=0, rwin_size=0, batch_size=32):
     """
-    This function constructs a one-to-one mapping:
+    Construct a one-to-one mapping:
         batch_i --> {speaker_i, c0_i, c1_i}
 
     where:
@@ -84,28 +105,13 @@ def batch_mapping(speech_dict, chunk_size=5120, batch_size=32):
         speaker_i = speaker ID for batch_i
         c0_i = starting column for batch_i in the chunked feature matrix for speaker_i 
         c1_i = terminating column+1 for batch_i in the chunked feature matrix for speaker_i
-        
-    Parameters
-    ----------
-    speech_dict : dict
-        LibriSpeech dictionary
-    chunk_size : int, optional
-        size of each audio sequence chunk. The default is 5120.
-    batch_size : int, optional
-        number of audio sequence chunks per training batch. The default is 32.
-    
-    Returns
-    -------
-    batch_map : list
-        [ [speaker_0, c0_0, c1_0] ,..., [speaker_{n_batch-1}, c0_{n_batch-1}, c1_{n_batch-1}] ]
-
     """
     
     batch_map = []
     
     for speaker in speech_dict:
         n_samples = speech_dict[speaker]['n_samples']
-        n_chunks = n_samples//chunk_size
+        n_chunks = (n_samples - lwin_size - rwin_size)//chunk_size
         n_batches = n_chunks//batch_size
         
         c0_i = 0
@@ -117,14 +123,24 @@ def batch_mapping(speech_dict, chunk_size=5120, batch_size=32):
     return batch_map
             
 
-def partition_speech_dict(speech_dict, chunk_size=5120, batch_size=32, min_val_frac = 0.2):
+def partition_speech_dict(speech_dict, chunk_size=5120, lwin_size=0, 
+                          rwin_size=0, batch_size=32, min_val_frac = 0.2):
     """
-        Partition speech_dict into training set and validation set
-        Return new speech dicts
+        Partition speech_dict into training set (speech_dict_train)
+        and validation set (speech_dict_val)
+        
+        Partitioning is carried out at the speaker level. 
+        i.e. speakers are randomly drawn and their full dataset is added to
+        the validation set.  This continues until the validation set exceeds
+        the minimum required size specified by min_val_frac.  
+        
+        Hence, the trained model is validated against unseen speakers which 
+        provides a more rigorous test of generalizability.
     """
     
     speakers = [speaker for speaker in speech_dict]
-    batch_map = batch_mapping(speech_dict, chunk_size=chunk_size, batch_size=batch_size)
+    batch_map = batch_mapping(speech_dict, chunk_size=chunk_size, lwin_size=lwin_size,
+                              rwin_size=rwin_size, batch_size=batch_size)
     n_batches = len(batch_map)
     
     val_size_target = float(n_batches)*min_val_frac
@@ -156,43 +172,43 @@ def partition_speech_dict(speech_dict, chunk_size=5120, batch_size=32, min_val_f
     return speech_dict_train, speech_dict_val, val_frac
 
 
-def chunkify_speaker_data(speaker_datafile, chunk_size=5120):
+def chunkify_speaker_data(speaker_datafile, chunk_size=5120, lwin_size=0,
+                          rwin_size=0, with_windowing=False):
     """
-    Reshape speaker data array x into a feature matrix X where:
-        X.shape = (n_chunks, chunk_size) with n_chunks = floor(len(x)/chunk_size)
+    Slice speaker data array into a feature matrix where the rows are
+    "chunks" (i.e. consecutive audio segments)
     
-    Parameters
-    ----------
-    speaker_datafile : str
-        path to the speaker data array
-    chunk_size : int, optional
-        length of each feature vector. The default is 5120.
-
-    Returns
-    -------
-    X : numpy array, dim(X) = (n_chunks, chunk_size) 
-        Feature matrix in which the speaker data array is broken up into 
-        feature vectors of size chunk_size.  The column ordering preserves the
-        sequential structure of the original audio signal.  Only the first 
-        n_chunks*chunk_size entries from x are retained in X.
+    We implement a sliding window with overlap where the left/right overlap
+    size is specified by lwin_size/rwin_size
     """
     
     # Read speaker_i data array
     x = np.load(speaker_datafile)
     
     # Number of chunks
-    n_chunks = len(x)//chunk_size
-    
-    # Size of data to be retained in feature matrix
-    size_to_keep = n_chunks*chunk_size
-    
+    n_chunks = (len(x) - lwin_size - rwin_size)//chunk_size    
+
     # Construct feature matrix
-    X = x[:size_to_keep].reshape((n_chunks, chunk_size))
-    
+    if with_windowing:
+        # Sliding window with overlap
+        size_to_keep = n_chunks*chunk_size + lwin_size + rwin_size
+        
+        X = np.lib.stride_tricks.as_strided(x[:size_to_keep], 
+                                            (n_chunks, chunk_size+lwin_size+rwin_size),
+                                            (x.strides[0]*chunk_size, x.strides[0])).copy()
+    else:
+        # Non-overlapping window
+        size_to_keep = n_chunks*chunk_size
+        X = x[lwin_size:size_to_keep+lwin_size].reshape((n_chunks, chunk_size))
+        
     return X
     
 
-def bunchify_and_chunkify_speaker_data(speech_dict, sampling_rate=16000, dt_chunk=.40, with_data=False):
+def bunchify_chunkify_speaker_data(speech_dict, sampling_rate=16000, dt_chunk=.40, with_data=False):
+    print('bunchify_chunkify_speaker_data() not yet extended to overlapping window case')
+    import sys
+    sys.exit()
+    
     chunk_size = int(dt_chunk*sampling_rate)
 
     speakers = [speaker for speaker in speech_dict]

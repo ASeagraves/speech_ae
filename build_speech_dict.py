@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 """
- Build a dictionary for a LibriSpeech dataset
+ Build a speech_dict data structure from a LibriSpeech corpus
 """
 
 import utilities as utils
 import pickle
 
-root_dir = "../data/LibriSpeech/dev-clean"
+root_dir = '../data/LibriSpeech/dev-clean'
 
-params = {'sr': 16000,
-          'with_utts': False,
-          'with_bunch':True}
+params = {'sampling_rate': 16000,
+          'with_utterances': False,
+          'bunch_speaker_data':True}
 
-speech_dict = utils.build_LibriSpeech_dict(root_dir,  
-                                           with_utterances = params['with_utts'],
-                                           sampling_rate = params['sr'],
-                                           bunch_speaker_data = params['with_bunch'])
+speech_dict = utils.build_LibriSpeech_dict(root_dir, **params)
 
-pickle.dump(speech_dict, open(root_dir + '/dev-clean_dict.pkl', 'wb'))
+pickle.dump(speech_dict, open(root_dir + '/speech_dict.pkl', 'wb'))

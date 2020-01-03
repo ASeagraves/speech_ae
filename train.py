@@ -1,28 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-Training a speech autoencoder
+Training a speech autoencoder using Keras/TensorFlow and FCNNs
 """
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
 from tensorflow.keras.callbacks import ModelCheckpoint
 
 from generator import DataGenerator
 import autoencoder
 import utilities as utils
 import matplotlib.pyplot as plt
-import numpy as np
 import pickle
 import os
 
 
-def train(root_dir, out_dir, hyperparams, layer_params):
+def train(root_dir, out_dir, speech_dict_file, hyperparams, layer_params):
     # Create output directory
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
     # Unpack hyperparameters
     dt_chunk        = hyperparams['dt_chunk']  # sec
+    dt_lwin         = hyperparams['dt_lwin']   # sec
+    dt_rwin         = hyperparams['dt_rwin']   # sec
     sr              = hyperparams['sr']  # Hz
     batch_size      = hyperparams['batch_size']
     epochs          = hyperparams['epochs']
@@ -32,8 +31,13 @@ def train(root_dir, out_dir, hyperparams, layer_params):
 
     # Derived hyperparameters
     chunk_size = int(dt_chunk * sr)
+    lwin_size =  int(dt_lwin * sr)
+    rwin_size =  int(dt_rwin * sr)
 
+    # Pack size parameters for convenience
     params = {'chunk_size': chunk_size,
+              'lwin_size' : lwin_size,
+              'rwin_size' : rwin_size,
               'batch_size': batch_size}
 
     # Load speech dictionary and train/val split
@@ -41,7 +45,6 @@ def train(root_dir, out_dir, hyperparams, layer_params):
         speech_dict_train = pickle.load(open('speech_dict_train.pkl', 'rb'))
         speech_dict_val = pickle.load(open('speech_dict_val.pkl', 'rb'))
     else:
-        speech_dict_file = root_dir + '/dev-clean_dict.pkl'
         speech_dict = pickle.load(open(speech_dict_file, 'rb'))
         speech_dict_train, speech_dict_val, val_frac = utils.partition_speech_dict(speech_dict, min_val_frac=min_val_frac, **params)
         pickle.dump(speech_dict_train, open('speech_dict_train.pkl', 'wb'))
@@ -53,8 +56,10 @@ def train(root_dir, out_dir, hyperparams, layer_params):
 
     # Autoencoder architecture
     layers = [chunk_size//layer_size_factor for layer_size_factor in layer_params]
+    layers[0] = chunk_size + lwin_size + rwin_size # adjust input layer for left/right windowing
     model = autoencoder.build_model(layers)
 
+    # Compile model
     model.compile(loss='mean_squared_error',
                   optimizer=tf.keras.optimizers.Adam(lr=lr),
                   metrics=['accuracy'])
