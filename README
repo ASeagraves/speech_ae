@@ -3,7 +3,7 @@ speech_ae:  Autoencoders for unsupervised representation learning of speech data
 Developer:  Andrew Seagraves
             2020
 
-This package implements autoencoders for processing speech data.  
+This package implements autoencoders for processing speech data in the time domain.  
 
 Contents:
 
@@ -11,13 +11,27 @@ build_speech_dict.py
 -Driver to build a speech_dict ("speech dictionary") from a LibriSpeech corpus.  The speech_dict data structure forms the basis for the DataGenerator class implemented in generator.py.
 
 utilities.py
--A set of utility functions for preprocessing a LibriSpeech corpus including speech_dict construction.
+-A set of utility functions for preprocessing, loading data from, and manipulating a LibriSpeech corpus.  Includes function for speech_dict construction.
 
 generator.py
 -DataGenerator class for generating batches of speech audio sequences from a preprocessed LibriSpeech corpus.
 
-main.py
--Keras implementation of a vanilla autoencoder using fully-connected layers built using Sequential() 
+train.py
+-Keras/TensorFlow implementation of a simple autoencoder using fully-connected layers built using Sequential().  The hyperparmaeters and network layer structure (number of layers and layer sizes) are passed as inputs enabling automated parameter studies.
 
+driver.py
+-Driver for conducting automated parameter studies via sequential calls to train.py.
 
+Notes:
 
+-The current implementation supports a sliding window over the input training sequence with a specified amount of overlap on the left and right.  The chunk size and left/right overlap size are specified in the time domain.  The user must also specify the sampling rate.
+
+Dependencies:
+
+-numpy
+-TensorFlow (v1 or 2)
+-librosa
+-tqdm
+-matplotlib
+
+ 
