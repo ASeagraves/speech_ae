@@ -4,7 +4,6 @@ Developer:  Andrew Seagraves
             2020
 
 Contents:
-
 build_speech_dict.py
 -Driver to build a speech_dict ("speech dictionary") from a LibriSpeech corpus.  The speech_dict data structure forms the basis for the DataGenerator class implemented in generator.py.
 
@@ -23,16 +22,21 @@ driver.py
 plot_spectrogram.py
 -Driver for plotting batches of reconstructed spectrograms from trained models and comparing them to ground truth.
 
-Notes:
 
+Notes:
 -The current implementation supports a sliding window over the input training sequence with a specified amount of overlap on the left and right.  The chunk size and left/right overlap size are specified in the time domain.  The user must also specify the sampling rate.
 
-Dependencies:
 
+Dependencies:
 -numpy
 -TensorFlow (v1 or 2)
 -librosa
 -tqdm
 -matplotlib
 
- 
+
+To Train a Model on a LibriSpeech Corpus:
+1.  Edit root_dir path in build_speech_dict.py to point to LibriSpeech data directory
+2.  Run python build_speech_dict.py
+3.  Edit paths in driver.py (root_dir, results_dir, etc.).  Set desired hyperparameters and network/layer sizes for training.
+4.  Run python driver.py
