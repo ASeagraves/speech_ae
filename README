@@ -38,5 +38,5 @@ Dependencies:
 To Train a Model on a LibriSpeech Corpus:
 1.  Edit root_dir path in build_speech_dict.py to point to LibriSpeech data directory
 2.  Run python build_speech_dict.py
-3.  Edit paths in driver.py (root_dir, results_dir, etc.).  Set desired hyperparameters and network/layer sizes for training.
+3.  Edit paths in driver.py (root_dir, base_dir, etc.).  Set desired hyperparameters and network/layer sizes for training.
 4.  Run python driver.py
