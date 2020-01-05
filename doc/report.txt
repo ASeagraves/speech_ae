@@ -1,8 +1,0 @@
-Autoencoders for Representation Learning on Speech Data
-
-
-Summary
-
-A python package (dubbed "speech_ae") was implemented to build autoencoders for audio sequences.  The initial revision provides an end-to-end solution for training autoencoders on LibriSpeech databases including pre-processing,   
-
-The training process is facilitated by a data structure called a "speech_dict" which 
