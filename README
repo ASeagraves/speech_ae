@@ -1,9 +1,7 @@
-speech_ae:  Autoencoders for unsupervised representation learning of speech data
+This package implements autoencoders for processing speech data in the time domain.  
 
 Developer:  Andrew Seagraves
             2020
-
-This package implements autoencoders for processing speech data in the time domain.  
 
 Contents:
 
@@ -21,6 +19,9 @@ train.py
 
 driver.py
 -Driver for conducting automated parameter studies via sequential calls to train.py.
+
+plot_spectrogram.py
+-Driver for plotting batches of reconstructed spectrograms from trained models and comparing them to ground truth.
 
 Notes:
 
